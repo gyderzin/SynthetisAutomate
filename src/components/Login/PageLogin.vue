@@ -7,14 +7,14 @@
       </div>
 
       <v-card-text>
-        <v-form @submit.prevent="handleLogin" ref="form">
-          <v-text-field v-model="username" label="Usuário" prepend-icon="mdi-account" required
-            class="mb-4"></v-text-field>
+        <v-form ref="form" @submit.prevent>
+          <v-text-field v-model="username" :rules="[v => !!v || 'Preencha seu usuário.']" label="Usuário"
+            prepend-icon="mdi-account" required class="mb-4"></v-text-field>
 
-          <v-text-field v-model="password" label="Senha" type="password" prepend-icon="mdi-lock" required
-            class="mb-4"></v-text-field>
+          <v-text-field v-model="password" :rules="[v => !!v || 'Preencha sua senha.']" label="Senha" type="password"
+            prepend-icon="mdi-lock" required class="mb-4"></v-text-field>
 
-          <v-btn type="submit" color="primary" block size="large">
+          <v-btn type="button" color="primary" block size="large" @click="handleLogin">
             Entrar
           </v-btn>
         </v-form>
@@ -25,6 +25,8 @@
 
 <script>
 import { useAuthStore } from '@/stores/login/auth';
+import { useAlertStore } from '@/stores/alert';
+import router from '@/router';
 export default {
   data: () => ({
     username: '',
@@ -32,25 +34,46 @@ export default {
   }),
   setup() {
     const auth = useAuthStore();
-    return { auth };
+    const alert = useAlertStore();
+
+    return { auth, alert };
   },
   methods: {
     async handleLogin() {
-      await this.auth.login(this.username, this.password).then((payload) => {
-        if(payload) {
-          console.log('true')
-        } else {
-          console.log('false')
-        }
-      })
-      if (this.auth.token) {
-        console.log('Token JWT:', this.auth.token);
-        alert('logado com sucesso')
-        // Redirecionar para rota protegida, etc.
+      const { valid } = await this.$refs.form.validate();
+      if (!valid) return;
+
+      const payload = await this.auth.login(this.username, this.password);
+
+      if (payload) {
+        this.alert.callAlert({
+          type: 'success',
+          title: 'Logado com sucesso',
+          text: ''
+        });
+        router.push('/home');
       } else {
-        console.log(this.auth.error);
+        this.tratarErroLogin();
       }
     },
+    tratarErroLogin() {
+      let alert = {}
+      switch (this.auth.getError) {
+        case 1:
+          alert = { type: 'error', title: 'Usuário ou senha incorretos' }
+          break;
+        case 2:
+          alert = { type: 'error', title: 'Erro de validação dos campos' }
+          break;
+        case 3:
+          alert = { type: 'warning', title: 'Erro de conexão com o servidor', text: 'Contate o suporte!' }
+          break;
+        default:
+          alert = { type: 'warning', title: 'Erro inesperado', text: 'Contate o suporte!' }
+      }
+      this.alert.callAlert(alert);
+    }
+
   }
 }
 </script>
@@ -72,11 +95,6 @@ export default {
   min-width: 320px;
   padding: 1.5rem 1.2rem;
   border-radius: 12px;
-}
-
-.centralizar-div {
-  display: flex;
-  justify-content: center;
 }
 
 /* Imagem responsiva */

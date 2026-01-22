@@ -7,11 +7,24 @@ import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'
 
 export default defineConfig([
   {
-    name: 'app/files-to-lint',
+    name: 'base',
     files: ['**/*.{js,mjs,jsx,vue}'],
+    rules: {}
   },
 
   globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+
+  // 🔥 CARREGA AS CONFIGURAÇÕES DO VUE ANTES
+  ...pluginVue.configs['flat/essential'],
+
+  // 🔥 AQUI SIM É O LUGAR CERTO PARA DESABILITAR A REGRA
+  {
+    rules: {
+      'vue/valid-v-slot': 'off',
+      'vue/no-deprecated-v-on-native-modifier': 'off',
+      'vue/no-deprecated-slot-attribute': 'off',
+    },
+  },
 
   {
     languageOptions: {
@@ -22,7 +35,6 @@ export default defineConfig([
   },
 
   js.configs.recommended,
-  ...pluginVue.configs['flat/essential'],
   ...pluginOxlint.configs['flat/recommended'],
   skipFormatting,
 ])
